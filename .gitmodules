@@ -1,3 +1,3 @@
 [submodule "CharucoBoardToSVG"]
-	path = CharucoBoardToSVG
+	path = cameraCalibration/CharucoBoardToSVG
 	url = git@github.com:Jensbeltman/CharucoBoardToSVG.git
