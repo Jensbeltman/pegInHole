@@ -194,8 +194,8 @@ try:
                         # Reproportion the image, maxing width or height at 1000
                         proportion = max(img.shape) / 1000.0
                         img = cv2.resize(img, (int(img.shape[1] / proportion), int(img.shape[0] / proportion)))
-                        cv2.imshow('Charuco board', img)
-                        cv2.waitKey(0)
+                        # cv2.imshow('Charuco board', img)
+                        # cv2.waitKey(0)
 
                     else:
                         print("Not able to detect a charuco board in image: {}".format(iname))
