@@ -31,7 +31,6 @@ class Preset(IntEnum):
     HighDensity = 4
     MediumDensity = 5
 
-
 def make_clean_folder(path_folder):
     if not exists(path_folder):
         makedirs(path_folder)
@@ -42,7 +41,6 @@ def make_clean_folder(path_folder):
             makedirs(path_folder)
         else:
             exit()
-
 
 def save_intrinsic_as_json(filename, frame):
     intrinsics = frame.profile.as_video_stream_profile().intrinsics
@@ -60,6 +58,8 @@ def save_intrinsic_as_json(filename, frame):
             },
             outfile,
             indent=4)
+
+    
 
 
 if __name__ == "__main__":
