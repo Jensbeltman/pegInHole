@@ -1,0 +1,3 @@
+[submodule "CharucoBoardToSVG"]
+	path = CharucoBoardToSVG
+	url = git@github.com:Jensbeltman/CharucoBoardToSVG.git
