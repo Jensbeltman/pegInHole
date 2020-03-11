@@ -19,25 +19,23 @@ def calibrate(image_folder,output_file,squaresX = 6, squaresY = 10, squareLength
     if len(image_filenames) == 0:
         return None
     else:
-        dictionary = toDict(dictionary)
-        # The calibration part is a modified version of https://github.com/kyle-elsalhi/opencv-examples/blob/master/CalibrationByCharucoBoard/CalibrateCamera.py
+        dictionary = toDict(dictionary)# toDict converts string to OpenCV Charuco Dictionary integer
+
+        # The calibration part is a modified version of https://github.co# toDict converts string to OpenCV Charuco Dictionary integerm/kyle-elsalhi/opencv-examples/blob/master/CalibrationByCharucoBoard/CalibrateCamera.py
         # Create constants to be passed into OpenCV and Aruco methods
         CHARUCO_BOARD = aruco.CharucoBoard_create(
             squaresX=squaresX,
             squaresY=squaresY,
             squareLength=squareLength,
             markerLength=markerLength,
-            dictionary=dictionary )# toDict converts string to dict integer
+            dictionary=dictionary )
 
         # Create the arrays and variables we'll use to store info like corners and IDs from images processed
         corners_all = []  # Corners discovered in all images processed
         ids_all = []  # Aruco ids corresponding to corners discovered
         image_size = None  # Determined at runtime
 
-        
-
-
-        # Loop through images glob'ed
+        # Loop through images 
         nrImages=len(image_filenames)
         for ii,iname in enumerate(image_filenames):
             print("Detecting markers: {:07.3f}%".format(100.0*ii/(nrImages-1)),end='\r')  
@@ -57,6 +55,7 @@ def calibrate(image_folder,output_file,squaresX = 6, squaresY = 10, squareLength
                 image=img,
                 corners=corners)
 
+            
             # Get charuco corners and ids from detected aruco markers
             response, charuco_corners, charuco_ids = aruco.interpolateCornersCharuco(
                 markerCorners=corners,
@@ -66,16 +65,10 @@ def calibrate(image_folder,output_file,squaresX = 6, squaresY = 10, squareLength
 
             # If a Charuco board was found, let's collect image/corner points
             # Requiring at least 6 squares
-            if response > 6:
+            if response > 0.50*(len(CHARUCO_BOARD.ids)):
                 # Add these corners and ids to our calibration arrays
                 corners_all.append(charuco_corners)
                 ids_all.append(charuco_ids)
-
-                # Draw the Charuco board we've detected to show our calibrator the board was properly detected
-                # img = aruco.drawDetectedCornersCharuco(
-                #     image=img,
-                #     charucoCorners=charuco_corners,
-                #     charucoIds=charuco_ids)
 
                 # If our image size is unknown, set it now
                 if not image_size:
@@ -84,22 +77,14 @@ def calibrate(image_folder,output_file,squaresX = 6, squaresY = 10, squareLength
                 # Reproportion the image, maxing width or height at 1000
                 proportion = max(img.shape) / 1000.0
                 img = cv2.resize(img, (int(img.shape[1] / proportion), int(img.shape[0] / proportion)))
-                # cv2.imshow('Charuco board', img)
-                # cv2.waitKey(0)
 
             else:
                 print("Not able to detect a charuco board in image: {}".format(iname))
 
 
-            
-        # Destroy any open CV windows
-
         # Make sure at least one image was found
         if len(image_filenames) < 1:
-            # Calibration failed because there were no images, warn the user
-            print(
-                "Calibration was unsuccessful. No images of charucoboards were found. Add images of charucoboards and use or alter the naming conventions used in this file.")
-            # Exit for failure
+            print("Calibration was unsuccessful. No images of charucoboards were found. Add images of charucoboards and use or alter the naming conventions used in this file.")
             exit()
 
         # Make sure we were able to calibrate on at least one charucoboard by checking
@@ -129,18 +114,23 @@ def calibrate(image_folder,output_file,squaresX = 6, squaresY = 10, squareLength
         print("Wrote {} to {}".format(camCal,output_file))
 
 if __name__ == "__main__":  
-    parser = argparse.ArgumentParser(description="Camera Calibration Using OpenCV CharucoBoards")
-    parser.add_argument("--input_folder",nargs="?",default='./imageLogger/color/',help="set output folder")
-    parser.add_argument("--charucoBoardJson",nargs="?",default='./charucoBoard.json',help="json file contained charuco board parameter")
-    parser.add_argument("--camCalJson",nargs="?",default='./camCal.json',help="json file contained calculated camera  parameter")
+    parser = argparse.ArgumentParser(description="Generate camera calibration with given charucoBoard parameters")
+    # parser.add_argument('squaresX',help="squaresX parameter used for OpenCv charuco board initialization")
+    # parser.add_argument('squaresY',help="squaresY parameter used for OpenCv charuco board initialization")
+    # parser.add_argument('squareLength',help="squareLength parameter used for OpenCv charuco board initialization")
+    # parser.add_argument('markerLength',help="markerLength parameter used for OpenCv charuco board initialization")
+    # parser.add_argument('dictionary',help="dictionary parameter used for OpenCv charuco board initialization")
+    parser.add_argument("--camCalJson",nargs="?",default='./charucoBoard.json',help="charuco json file")
+    parser.add_argument("--out_file",nargs="?",default='./camCal.json',help="output file")
+    parser.add_argument("--input_folder",nargs="?",default='./imageLogger/color/',help="input folder with images")
 
     args = parser.parse_args()
 
     data = []
-    with open(args.charucoBoardJson) as json_file:
+    with open(args.camCalJson) as json_file:
         data = json.load(json_file)
     
-    calibrate(args.input_folder,args.camCalJson,int(data['squaresX']),int(data['squaresY']),float(data['squareLength']),float(data['markerLength']),data['dictionary'])
+    calibrate(args.input_folder,args.output_file,int(data['squaresX']),int(data['squaresY']),float(data['squareLength']),float(data['markerLength']),data['dictionary'])
 
 
     
