@@ -121,7 +121,7 @@ if __name__ == "__main__":
     # parser.add_argument('markerLength',help="markerLength parameter used for OpenCv charuco board initialization")
     # parser.add_argument('dictionary',help="dictionary parameter used for OpenCv charuco board initialization")
     parser.add_argument("--camCalJson",nargs="?",default='./charucoBoard.json',help="charuco json file")
-    parser.add_argument("--out_file",nargs="?",default='./camCal.json',help="output file")
+    parser.add_argument("--output_file",nargs="?",default='./camCal.json',help="output file")
     parser.add_argument("--input_folder",nargs="?",default='./imageLogger/color/',help="input folder with images")
 
     args = parser.parse_args()

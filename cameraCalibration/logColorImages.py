@@ -59,7 +59,7 @@ def logImages(path_output):
 
     # note: using 640 x 480 depth resolution produces smooth depth boundaries
     #       using rs.format.bgr8 for color image format for OpenCV based image visualization
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+    config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)
 
     # Start streaming
     profile = pipeline.start(config)
