@@ -8,7 +8,7 @@ if __name__ == "__main__":
     parser.add_argument('squareLength',help="squareLength parameter used for OpenCv charuco board initialization")
     parser.add_argument('markerLength',help="markerLength parameter used for OpenCv charuco board initialization")
     parser.add_argument('dictionary',help="dictionary parameter used for OpenCv charuco board initialization")
-    parser.add_argument("--output_file",nargs="?",default='./charucoBoard.json',help="output file")
+    parser.add_argument("--output_file",nargs="?",default='./json/charucoBoard.json',help="output file")
 
     args = parser.parse_args()
 

@@ -3,10 +3,12 @@ import numpy as np
 import cv2 as cv2
 import open3d.open3d as o3d
 from enum import Enum 
-import json
-import threading
-import time
-class Preset():
+from os import makedirs
+from os.path import exists, join 
+import sys, time, threading, json, shutil, time
+
+
+class PresetPaths():
     BodyScanPreset = "./realsensePresets/BodyScanPreset.json"
     DefaultPreset_D415 = "./realsensePresets/DefaultPreset_D415.json"
     HandGesturePreset = "./realsensePresets/HandGesturePreset.jsonH"
@@ -32,25 +34,41 @@ def loadPreset(path):
     return preset_string
 
 class CameraRGBD():
-    def __init__(self, width=1280, height=720, fps= 30, clipDist = 1,initVis = True):
+    def __init__(self, path_preset=PresetPaths.ShortRangePreset, path_output='./dataset/',width=1280, height=720, fps= 15, clipDist = 1,init3DVis = True):
+        # Define paths where data should be saved
+        self.path_output = path_output
+        self.path_color =  join(self.path_output, "depth")
+        self.path_depth =  join(self.path_output, "color")
+        self.make_clean_folder(self.path_output)
+        self.make_clean_folder(self.path_color)
+        self.make_clean_folder(self.path_depth)
+        self.path_preset = path_preset
+
+        self.saveFrames = False
+        self.saveFrame = False
+
+        
+        # Variable for data storage
         self.pcd = o3d.geometry.PointCloud()
+        self.color_img = None
+        self.pcdVis_frame_count = 0
+        self.frame_count = 0
+        self.saved_frame_count = 0
 
-
-         # Create a pipeline
+        # Create a pipeline camera pipeline object
         self.pipeline = rs.pipeline()
 
         #Create a config and configure the pipeline to stream
-        #  different resolutions of color and depth streams
         self.config = rs.config()
-
         self.config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
         self.config.enable_stream(rs.stream.color, width, height, rs.format.rgb8, fps)
 
-        # Start streaming
+        # Start streaming based on config
         self.profile = self.pipeline.start(self.config)
-        self.depth_sensor = self.profile.get_device().first_depth_sensor()
+        self.on =  True
 
         # Getting the depth sensor's depth scale (see rs-align example for explanation)
+        self.depth_sensor = self.profile.get_device().first_depth_sensor()
         self.depth_scale = self.depth_sensor.get_depth_scale()
 
         # We will not display the background of objects more than
@@ -60,7 +78,7 @@ class CameraRGBD():
 
         # Using preset HighAccuracy for recording
         #depth_sensor.set_option(rs.option.visual_preset, Preset.HighAccuracy)
-        rs.rs400_advanced_mode(self.profile.get_device()).load_json(loadPreset(Preset.ShortRangePreset))
+        rs.rs400_advanced_mode(self.profile.get_device()).load_json(loadPreset(self.path_preset))
         
         # Create an align object
         # rs.align allows us to perform alignment of depth frames to others frames
@@ -69,44 +87,56 @@ class CameraRGBD():
 
         self.flip_transform = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
 
-        self.color_img = None
-        self.pcdVis_frame_count = 0
+        # Visualization'
+        if init3DVis:
+            self.pcdVis = o3d.visualization.VisualizerWithKeyCallback()
+            self.pcdVis.create_window()
+            self.pcdVis.register_key_callback(32,self.toggleSaveFrames)
 
+            self.pcdVis.register_key_callback(81,self.stopCamera)
+            self.pcdVis.register_key_callback(83,self.saveOneFrame)
 
-        # Visualization
-        self.pcdVis = o3d.visualization.VisualizerWithKeyCallback()
-        if initVis:
-            self.initPCDVis()
+            # Get a frame before calling the vizualiser
+            self.getFrames()
+            self.pcdVis.add_geometry(self.pcd)
+            self.visPCD()
+        else:
+            self.pcdVis = None
 
-    def initPCDVis(self):
-        # Initialize visualization
-        self.pcdVis.register_key_callback(32,CameraRGBD.key_action_callback)
-        self.pcdVis.create_window()
-        self.getFrames()
-        self.visPCD()
-        # self.pcdVis.run()
+    def toggleSaveFrames(self,vis):
+        self.saveFrames = not self.saveFrames
+
+    def saveOneFrame(self,vis):
+        self.saveFrame = True
+    
+    def stopCamera(self,vis):
+        self.on = False
+
+    def close(self):
+        self.pipeline.stop()
+        self.pcdVis.close()
 
     def visPCD(self):
-        if self.pcdVis_frame_count == 0:
-            self.pcdVis.add_geometry(self.pcd)
-
         self.pcdVis.update_geometry(self.pcd)
-
         self.updateVis()
-        self.pcdVis_frame_count += 1
 
     def updateVis(self):
         self.pcdVis.poll_events()
         self.pcdVis.update_renderer()
-       
-    @classmethod
-    def key_action_callback(vis, action):
-        print("n pressed")
-        if action == 1:  # key down
-            vis.poll_events()
-            vis.update_renderer()
-        return True
 
+    @staticmethod
+    def make_clean_folder(path_folder):
+        if not exists(path_folder):
+            makedirs(path_folder)
+        else:
+            user_input = input("%s not empty. Overwrite? (y/n) : " % path_folder)
+            if user_input.lower() == 'y':
+                shutil.rmtree(path_folder)
+                makedirs(path_folder)
+            else:
+                exit()
+
+       
     @staticmethod
     def get_intrinsic_matrix(frame):
         intrinsics = frame.profile.as_video_stream_profile().intrinsics
@@ -117,48 +147,68 @@ class CameraRGBD():
 
 
     def getFrames(self):
-            # Get frameset of color and depth
-            frames = self.pipeline.wait_for_frames()
+        # Get frameset of color and depth
+        frames = self.pipeline.wait_for_frames()
+        
 
-            # Align the depth frame to color frame
-            aligned_frames = self.align.process(frames)
+        # Align the depth frame to color frame
+        aligned_frames = self.align.process(frames)
 
-            # Get aligned frames
-            aligned_depth_frame = aligned_frames.get_depth_frame()
-            color_frame = aligned_frames.get_color_frame()
-            intrinsic = o3d.camera.PinholeCameraIntrinsic(
-                self.get_intrinsic_matrix(color_frame))
+        # Get aligned frames
+        aligned_depth_frame = aligned_frames.get_depth_frame()
+        color_frame = aligned_frames.get_color_frame()
 
-            # Validate that both frames are valid
-            if not aligned_depth_frame or not color_frame:
-                return False
+        # Validate that both frames are valid
+        if not aligned_depth_frame or not color_frame:
+            return False
 
-            depth_image = o3d.geometry.Image(
-                np.array(aligned_depth_frame.get_data()))
-            color_temp = np.asarray(color_frame.get_data())
-            color_image = o3d.geometry.Image(color_temp)
+        depth_image_raw = np.array(aligned_depth_frame.get_data())
+        color_image_raw = np.asarray(color_frame.get_data())
+        depth_image = o3d.geometry.Image(depth_image_raw)
+        color_image = o3d.geometry.Image(color_image_raw)
 
-            rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
-                color_image,
-                depth_image,
-                depth_scale=1.0 / self.depth_scale,
-                depth_trunc=self.clipping_distance_in_meters,
-                convert_rgb_to_intensity=False)
-            temp = o3d.geometry.PointCloud.create_from_rgbd_image(
-                rgbd_image, intrinsic)
-            temp.transform(self.flip_transform)
+        if self.saveFrames or self.saveFrame:
+                cv2.imwrite("%s/%06d.png" % \
+                        (self.path_depth, self.saved_frame_count), depth_image_raw)
+                cv2.imwrite("%s/%06d.jpg" % \
+                        (self.path_color, self.saved_frame_count), color_image_raw)
+                print("Saved color + depth image %06d" % self.saved_frame_count)
+                self.saved_frame_count += 1    
+                self.saveFrame = False   
 
-            self.pcd.points = temp.points
-            self.pcd.colors = temp.colors
-            return True
+        # Generate Data for visualizer
+        rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+            color_image,
+            depth_image,
+            depth_scale=1.0 / self.depth_scale,
+            depth_trunc=self.clipping_distance_in_meters,
+            convert_rgb_to_intensity=False)
+
+        intrinsics = self.get_intrinsic_matrix(color_frame)
+
+        temp = o3d.geometry.PointCloud.create_from_rgbd_image(
+            rgbd_image, intrinsics)
+        temp.transform(self.flip_transform)
+        self.pcd.points = temp.points
+        self.pcd.colors = temp.colors
+
+        return frames != None
 
     
 
 
 if __name__ == "__main__":
-    camera = CameraRGBD()
-    #camera.pcdVis.run()
-    while True:
-        #camera.updateVis()
-        pass
+    camera = CameraRGBD(init3DVis=True,fps=15,path_output='./Data/')
+    while camera.on:
+        tS = time.time()
+        camera.getFrames()
+        camera.visPCD()
+        tE = time.time()
+        #print(1/(tE-tS))
+    camera.close()
+    print('Camera turned off')
+
+
+
+        
         
