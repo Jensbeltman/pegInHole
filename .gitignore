@@ -6,6 +6,13 @@ __pycache__/
 # C extensions
 *.so
 
+*.json
+*.svg
+*.png
+*.jpg
+*.pcd
+
+
 # Distribution / packaging
 .vscode/
 .Python
