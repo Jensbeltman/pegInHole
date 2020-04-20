@@ -5,27 +5,36 @@ import open3d.open3d as o3d
 from enum import Enum 
 from os import makedirs
 from os.path import exists, join 
-import sys, time, threading, json, shutil, time
+import sys, time, threading, json, shutil, time,ast
 
+
+class ReaderJSON(cv2.FileStorage):
+    def getNodeVal(self, name, dtype=str):
+        node = self.getNode( name)
+        return dtype(node.string())
+
+    def getNodeMat(self, name):
+        node = self.getNode(name)
+        return np.array(ast.literal_eval(node.string()))
 
 class PresetPaths():
-    BodyScanPreset = "./realsensePresets/BodyScanPreset.json"
-    DefaultPreset_D415 = "./realsensePresets/DefaultPreset_D415.json"
-    HandGesturePreset = "./realsensePresets/HandGesturePreset.jsonH"
-    HighResMidDensityPreset = "./realsensePresets/HighResMidDensityPreset.json"
-    LowResMidDensityPreset = "./realsensePresets/LowResMidDensityPreset.json"
-    MidResMidDensityPreset = "./realsensePresets/MidResMidDensityPreset.json"
-    custom = "./realsensePresets/custom.json"
-    DefaultPreset_D435 = "./realsensePresets/DefaultPreset_D435.json"
-    HighResHighAccuracyPreset = "./realsensePresets/HighResHighAccuracyPreset.json"
-    LowResHighAccuracyPreset = "./realsensePresets/LowResHighAccuracyPreset.json"
-    MidResHighAccuracyPreset = "./realsensePresets/MidResHighAccuracyPreset.json"
-    ShortRangePreset = "./realsensePresets/ShortRangePreset.json"
-    D415_RemoveIR = "./realsensePresets/D415_RemoveIR.json"
-    EdgeMapD435 = "./realsensePresets/EdgeMapD435.json"
-    HighResHighDensityPreset = "./realsensePresets/HighResHighDensityPreset.json"
-    LowResHighDensityPreset = "./realsensePresets/LowResHighDensityPreset.json"
-    MidResHighDensityPreset = "./realsensePresets/MidResHighDensityPreset.json"
+    BodyScanPreset = "../visualServoing/realsensePresets/BodyScanPreset.json"
+    DefaultPreset_D415 = "../visualServoing/realsensePresets/DefaultPreset_D415.json"
+    HandGesturePreset = "../visualServoing/realsensePresets/HandGesturePreset.jsonH"
+    HighResMidDensityPreset = "../visualServoing/realsensePresets/HighResMidDensityPreset.json"
+    LowResMidDensityPreset = "../visualServoing/realsensePresets/LowResMidDensityPreset.json"
+    MidResMidDensityPreset = "../visualServoing/realsensePresets/MidResMidDensityPreset.json"
+    custom = "../visualServoing/realsensePresets/custom.json"
+    DefaultPreset_D435 = "../visualServoing/realsensePresets/DefaultPreset_D435.json"
+    HighResHighAccuracyPreset = "../visualServoing/realsensePresets/HighResHighAccuracyPreset.json"
+    LowResHighAccuracyPreset = "../visualServoing/realsensePresets/LowResHighAccuracyPreset.json"
+    MidResHighAccuracyPreset = "../visualServoing/realsensePresets/MidResHighAccuracyPreset.json"
+    ShortRangePreset = "../visualServoing/realsensePresets/ShortRangePreset.json"
+    D415_RemoveIR = "../visualServoing/realsensePresets/D415_RemoveIR.json"
+    EdgeMapD435 = "../visualServoing/realsensePresets/EdgeMapD435.json"
+    HighResHighDensityPreset = "../visualServoing/realsensePresets/HighResHighDensityPreset.json"
+    LowResHighDensityPreset = "../visualServoing/realsensePresets/LowResHighDensityPreset.json"
+    MidResHighDensityPreset = "../visualServoing/realsensePresets/MidResHighDensityPreset.json"
 
 def loadPreset(path):
     preset_string = ''
@@ -34,19 +43,21 @@ def loadPreset(path):
     return preset_string
 
 class CameraRGBD():
-    def __init__(self, path_preset=PresetPaths.ShortRangePreset, path_output='./dataset/',width=1280, height=720, fps= 15, clipDist = 1,init3DVis = True):
+    def __init__(self, path_camCal=None, path_preset=PresetPaths.ShortRangePreset, path_output='./dataset/',width=1280, height=720, fps= 15, clipDist = 1,init3DVis = True,onlyColor=False):
         # Define paths where data should be saved
         self.path_output = path_output
-        self.path_color =  join(self.path_output, "depth")
-        self.path_depth =  join(self.path_output, "color")
+        self.path_color =  join(self.path_output, "color")
+        self.path_depth =  join(self.path_output, "depth")
         self.make_clean_folder(self.path_output)
         self.make_clean_folder(self.path_color)
         self.make_clean_folder(self.path_depth)
         self.path_preset = path_preset
+        self.width = width
+        self.height = height
 
         self.saveFrames = False
         self.saveFrame = False
-
+        self.onlyColor = onlyColor
         
         # Variable for data storage
         self.pcd = o3d.geometry.PointCloud()
@@ -55,12 +66,24 @@ class CameraRGBD():
         self.frame_count = 0
         self.saved_frame_count = 0
 
+
+        if path_camCal is None and not onlyColor:
+            print('Cannot start 3d stream cameraCalibration, turn on "onlyColor" if no camera calibration exists')
+        
+        self.cameraMatrix, self.distCoeffs = self.get_intrinsic_matrix(path_camCal)
+        self.intrinsics = o3d.camera.PinholeCameraIntrinsic(self.width, self.height, self.cameraMatrix[0,0],
+                                                self.cameraMatrix[1,1], self.cameraMatrix[0,2],
+                                                self.cameraMatrix[1,2])
+
+
+
         # Create a pipeline camera pipeline object
         self.pipeline = rs.pipeline()
 
         #Create a config and configure the pipeline to stream
         self.config = rs.config()
         self.config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
+        
         self.config.enable_stream(rs.stream.color, width, height, rs.format.rgb8, fps)
 
         # Start streaming based on config
@@ -138,43 +161,40 @@ class CameraRGBD():
 
        
     @staticmethod
-    def get_intrinsic_matrix(frame):
-        intrinsics = frame.profile.as_video_stream_profile().intrinsics
-        out = o3d.camera.PinholeCameraIntrinsic(640, 480, intrinsics.fx,
-                                                intrinsics.fy, intrinsics.ppx,
-                                                intrinsics.ppy)
-        return out
+    def get_intrinsic_matrix(path_camCal):
+        readerCAM = ReaderJSON("path_camCal",cv2.FileStorage_FORMAT_JSON)
+        cameraMatrix = readerCAM.getNodeMat('cameraMatrix')
+        distCoeffs = readerCAM.getNodeMat('distCoeffs')
+        readerCAM.release()
+
+        return cameraMatrix, distCoeffs
 
 
     def getFrames(self):
         # Get frameset of color and depth
         frames = self.pipeline.wait_for_frames()
         
-
         # Align the depth frame to color frame
         aligned_frames = self.align.process(frames)
 
+        color_frame = aligned_frames.get_color_frame()
+        self.color_img = np.asarray(color_frame.get_data())
+
+        if  self.onlyColor:
+            return frames != None
+ 
         # Get aligned frames
         aligned_depth_frame = aligned_frames.get_depth_frame()
-        color_frame = aligned_frames.get_color_frame()
+        
 
         # Validate that both frames are valid
         if not aligned_depth_frame or not color_frame:
             return False
 
         depth_image_raw = np.array(aligned_depth_frame.get_data())
-        color_image_raw = np.asarray(color_frame.get_data())
         depth_image = o3d.geometry.Image(depth_image_raw)
-        color_image = o3d.geometry.Image(color_image_raw)
+        color_image = o3d.geometry.Image(self.color_img)
 
-        if self.saveFrames or self.saveFrame:
-                cv2.imwrite("%s/%06d.png" % \
-                        (self.path_depth, self.saved_frame_count), depth_image_raw)
-                cv2.imwrite("%s/%06d.jpg" % \
-                        (self.path_color, self.saved_frame_count), color_image_raw)
-                print("Saved color + depth image %06d" % self.saved_frame_count)
-                self.saved_frame_count += 1    
-                self.saveFrame = False   
 
         # Generate Data for visualizer
         rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
@@ -192,13 +212,25 @@ class CameraRGBD():
         self.pcd.points = temp.points
         self.pcd.colors = temp.colors
 
+        if self.saveFrames or self.saveFrame:
+                o3d.io.write_point_cloud("%s/%06d.pcd" % \
+                        (self.path_depth, self.saved_frame_count), self.pcd)
+                cv2.imwrite("%s/%06d.jpg" % \
+                        (self.path_color, self.saved_frame_count), self.color_img)
+                print("Saved color + depth image %06d" % self.saved_frame_count)
+                self.saved_frame_count += 1    
+                self.saveFrame = False   
+                print(self.pcd.shape,self.color_img.shape,depth_image_raw.shape)
+                
+
+
         return frames != None
 
     
 
 
 if __name__ == "__main__":
-    camera = CameraRGBD(init3DVis=True,fps=15,path_output='./Data/')
+    camera = CameraRGBD(path_camCal='../cameraCalibration/json/cam_cal_D415_1280x720.json',init3DVis=True,fps=15,path_output='./cameraData/')
     while camera.on:
         tS = time.time()
         camera.getFrames()

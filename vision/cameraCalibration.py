@@ -108,7 +108,7 @@ def calibrate(image_folder,output_file,squaresX = 6, squaresY = 10, squareLength
             distCoeffs=None)
 
         # Write results to json file and terminal
-        camCal = {'cameraMatrix':cameraMatrix.tolist(),'distCoeffs':distCoeffs.tolist()}
+        camCal = {'cameraMatrix':str(cameraMatrix.tolist()),'distCoeffs':str(distCoeffs.tolist())}
         with open(output_file, 'w') as outfile:
             json.dump(camCal, outfile)
         print("Wrote {} to {}".format(camCal,output_file))
