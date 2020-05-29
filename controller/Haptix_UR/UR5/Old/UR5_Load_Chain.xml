@@ -1,0 +1,51 @@
+<!-- ======================================================
+	MuJoCo model
+	
+	Model   : Kuka LWR - dependencies 
+	Author  : Aljaz Kramberger
+
+	Copyright 2020 SDU 
+
+====================================================== -->
+
+<mujocoinclude>
+	<body name="base_link" pos="0 0 0.435">
+                <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="4" diaginertia="0.0072 0.00443333 0.00443333" />
+                <geom type="mesh"  mesh="base" material="ur5_mat"/>
+                <body name="shoulder_link" pos="0 0 0.089159">
+                    <inertial pos="0 0 0" mass="3.7" diaginertia="0.0102675 0.0102675 0.00666" />
+                    <joint name="shoulder_pan_joint" class="UR5" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14159 3.14159" />
+                    <geom type="mesh"  mesh="shoulder" material="ur5_mat"/>
+                    <body name="upper_arm_link" pos="0 0.13585 0" quat="0.707107 0 0.707107 0">
+                        <inertial pos="0 0 0.28" mass="8.393" diaginertia="0.226891 0.226891 0.0151074" />
+                        <joint name="shoulder_lift_joint" class="UR5" pos="0 0 0" axis="0 1 0" limited="true" range="-3.14159 0" /> <!--Range= -3.14159 3.14159-->
+                        <geom type="mesh"  mesh="upperarm" material="ur5_mat"/>
+                        <body name="forearm_link" pos="0 -0.1197 0.425">
+                            <inertial pos="0 0 0.25" mass="2.275" diaginertia="0.0494433 0.0494433 0.004095" />
+                            <joint name="elbow_joint" class="UR5" pos="0 0 0" axis="0 1 0" limited="true" range="-3.14159 3.14159" />
+                            <geom type="mesh"  mesh="forearm" material="ur5_mat"/>
+                            <body name="wrist_1_link" pos="0 0 0.39225" quat="0.707107 0 0.707107 0">
+                                <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="1.219" diaginertia="0.21942 0.111173 0.111173" />
+                                <joint name="wrist_1_joint" class="UR5e" pos="0 0 0" axis="0 1 0" limited="true" range="-3.14159 3.14159" />
+                                <geom type="mesh"  mesh="wrist1" material="ur5_mat"/>
+                                <body name="wrist_2_link" pos="0 0.093 0">
+                                    <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="1.219" diaginertia="0.21942 0.111173 0.111173" />
+                                    <joint name="wrist_2_joint" class="UR5e" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14159 3.14159" />
+                                    <geom type="mesh"  mesh="wrist2" material="ur5_mat"/>
+                                    <body name="wrist_3_link" pos="0 0 0.09465">
+                                        <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="0.1879" diaginertia="0.033822 0.0171365 0.0171365" />
+                                        <joint name="wrist_3_joint" class="UR5e" pos="0 0 0" axis="0 1 0" limited="true" range="-3.14159 3.14159" />
+                                        <geom type="mesh"  mesh="wrist3" material="ur5_mat"/>
+                                        <body name="ee_link" pos="0 0.0823 0" quat="0.707107 0 0 0.707107">
+                                            <inertial pos="-0.01 0 0" mass="0.001" diaginertia="1.66667e-08 1.66667e-08 1.66667e-08" />
+                                            <geom size="0.005 0.005 0.005" pos="-0.01 0 0" type="box" />
+											<site name="UR/EE" pos="0.14 0 0" quat="0 1 0 1" type="sphere" rgba="135 211 124 1" size="0.005"/>
+                                        </body>
+                                    </body>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+</mujocoinclude>

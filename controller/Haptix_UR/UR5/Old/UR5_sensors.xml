@@ -1,0 +1,32 @@
+<!-- ======================================================
+	MuJoCo model
+	
+	Model   : Kuka LWR - dependencies 
+	Author  : Aljaz Kramberger
+
+	Copyright 2020 SDU 
+
+====================================================== -->
+
+<mujocoinclude>
+	<!--ACTUATORS-->
+    <actuator>
+        <!--UR5-->
+        <position name='shoulder_pan' ctrllimited="true" ctrlrange="-3.14159 3.14159" joint='shoulder_pan_joint' kp="1000"/>
+        <position name='shoulder_lift' ctrllimited="true" ctrlrange="-3.14159 3.14159" joint='shoulder_lift_joint' kp="1000"/>
+        <position name='forearm' ctrllimited="true" ctrlrange="-3.14159 3.14159" joint='elbow_joint' kp="1000"/>
+        <position name='wrist_1' ctrllimited="true" ctrlrange="-3.14159 3.14159" joint='wrist_1_joint' kp="1000"/>
+        <position name='wrist_2' ctrllimited="true" ctrlrange="-3.14159 3.14159" joint='wrist_2_joint' kp="1000"/>
+        <position name='wrist_3' ctrllimited="true" ctrlrange="-3.14159 3.14159" joint='wrist_3_joint' kp="1000"/>
+
+ 
+
+        <velocity name='shoulder_pan_v' class="UR5" joint='shoulder_pan_joint' kv="10"/>
+        <velocity name='shoulder_lift_v' class="UR5" joint='shoulder_lift_joint' kv="10" />
+        <velocity name='forearm_v' class="UR5" joint='elbow_joint' kv="10"/>
+        <velocity name='wrist_1_v' class="UR5" joint='wrist_1_joint' kv="10"/>
+        <velocity name='wrist_2_v' class="UR5" joint='wrist_2_joint'kv="10"/>
+        <velocity name='wrist_3_v' class="UR5" joint='wrist_3_joint'kv="10"/>
+
+    </actuator>
+</mujocoinclude>

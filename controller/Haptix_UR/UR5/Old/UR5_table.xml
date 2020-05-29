@@ -1,0 +1,56 @@
+<!-- ======================================================
+	MuJoCo model
+	
+	Model   : Kuka LWR arm, gripper, table
+	Author  : Aljaz Kramberger
+
+	Copyright 2020 SDU
+
+====================================================== -->
+
+<mujoco model="UR5_Table">
+	<compiler meshdir="mesh/visual/" texturedir="texture/" angle="radian" inertiafromgeom="auto" balanceinertia="true"/>
+	<option timestep="0.01" integrator="Euler"/>
+	
+	<visual>
+		<quality shadowsize="4096"/>
+		<map fogstart="6" fogend="10"/>
+		<headlight diffuse=".6 .6 .6" specular="0 0 0"/>
+	</visual>
+	
+	<default>
+		<joint armature="0.01" damping=".1"/>
+		<default class="UR5">
+            <joint damping='65'/>
+        </default>
+	</default>
+
+
+	<include file="UR5_Dependency.xml"/>
+	
+	 <default>
+        <default class="block">
+            <geom type="box" friction=".5 .1 .1" margin="0.002" condim="1" contype="0" conaffinity="0" size="0.0125 0.0125 0.0125"/>
+        </default>
+    </default>
+
+	<worldbody>
+	<!--	================= Coordinate system ================= /-->
+		<light directional="false" cutoff="135" exponent="10" diffuse=".7 .7 .7" pos="0.4 -0.2 5.5" dir="-0.4 0.2 -5.5" specular=".3 .3 .3"/>
+		<geom group="2" type="cylinder" contype="0" conaffinity="0" fromto="0 0 0 1 0 0" size="0.01" rgba="1 0 0 1"/>
+		<geom group="2" type="cylinder" contype="0" conaffinity="0" fromto="0 0 0 0 1 0" size="0.01" rgba="0 1 0 1"/>
+		<geom group="2" type="cylinder" contype="0" conaffinity="0" fromto="0 0 0 0 0 1" size="0.01" rgba="0 0 1 1"/>
+	
+		
+		<!--	================= Table ================= /-->
+		<body name="Table/base" pos="0 0 -0.02" quat="1 0 0 0">
+			<geom type="box" pos="0 0 0" size="1 1 0.025" rgba="0.9 0.4 0 1" density="3000"/>
+		</body>	
+		<include file="UR5_Load_Chain.xml"/>
+	</worldbody>
+	 
+	<include file="UR5_actuators.xml"/>
+	<include file="UR5_sensors.xml"/>
+
+</mujoco>
+

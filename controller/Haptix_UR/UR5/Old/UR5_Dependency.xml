@@ -1,0 +1,46 @@
+<!-- ======================================================
+	MuJoCo model
+	
+	Model   : Kuka LWR - dependencies 
+	Author  : Aljaz Kramberger
+
+	Copyright 2020 SDU 
+
+====================================================== -->
+
+<mujocoinclude>
+	<default>
+		<!--joint armature="0.01" damping=".1"/-->
+		<default class="UR5">
+            <joint damping='65'/>
+        </default>
+	</default>
+	<asset>
+	 <!--Meshes-->
+        <mesh name="base"           file="base.stl"     />
+        <mesh name="shoulder"       file="shoulder.stl" />
+        <mesh name="upperarm"       file="upperarm.stl" />
+        <mesh name="forearm"        file="forearm.stl"  />
+        <mesh name="wrist1"         file="wrist1.stl"   />
+        <mesh name="wrist2"         file="wrist2.stl"   />
+        <mesh name="wrist3"         file="wrist3.stl"   />
+		
+	<!--Textures-->
+    <texture name="ur5_tex"     type="2d"       builtin="flat" height="32" width="32" rgb1="0.45 0.45 0.45" />
+
+	<material name="ur5_mat"        texture="ur5_tex"   shininess="0.9" specular="0.75" reflectance="0.3"/>
+	</asset>
+	
+	 <!--Contacts-->
+    <contact>
+        <exclude body1="box_link" body2="base_link"/>
+		<exclude body1="base_link" body2="shoulder_link"/>
+		<exclude body1="shoulder_link" body2="upper_arm_link"/>
+        <exclude body1="upper_arm_link" body2="forearm_link"/>
+		<exclude body1="forearm_link" body2="wrist_1_link"/>
+		<exclude body1="wrist_1_link" body2="wrist_2_link"/>
+        <exclude body1="wrist_2_link" body2="wrist_3_link"/>
+        <exclude body1="ee_link" body2="wrist_3_link"/>
+    </contact>
+	
+</mujocoinclude>
